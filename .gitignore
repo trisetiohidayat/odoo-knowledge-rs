@@ -1,0 +1,8 @@
+/target/
+/.data/
+/.env
+/benchmarks/runs/
+*.db
+*.db-shm
+*.db-wal
+

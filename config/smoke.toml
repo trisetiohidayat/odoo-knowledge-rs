@@ -1,0 +1,12 @@
+environment = "smoke"
+database_path = ".data/index.dev.db"
+log_level = "debug"
+
+[server]
+host = "127.0.0.1"
+port = 18765
+bearer_token_env = "ODOO_KNOWLEDGE_BEARER_TOKEN"
+
+[indexer]
+parallelism = 4
+
