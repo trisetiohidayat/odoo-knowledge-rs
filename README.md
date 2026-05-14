@@ -6,6 +6,14 @@ MCP server for coding agents.
 The Python implementation remains the behavior oracle while this version is
 being built.
 
+Current parser status:
+
+- Python: Tree-sitter based parser for models, fields, methods, decorators,
+  `super()` detection, and call names.
+- XML: record, view, action, and menu parser.
+- CSV: `ir.model.access.csv` parser.
+- JavaScript: heuristic parser for POS/Owl patch, registry, and class symbols.
+
 ## Development
 
 ```bash

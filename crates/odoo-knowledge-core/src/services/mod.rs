@@ -63,7 +63,7 @@ pub fn field_context(
         "field": field_name,
         "definitions": definitions,
         "related_views_sample": query_json(con, "SELECT xmlid, module, file_path, line_start FROM views WHERE codebase_id=?1 AND view_model=?2 ORDER BY module, xmlid LIMIT 100", params![cb.id, model_name])?,
-        "basis": "heuristic_python_parse",
+        "basis": "tree_sitter_python_parse",
         "confidence": if definitions.is_empty() { "low" } else { "medium" }
     }))
 }
@@ -97,7 +97,7 @@ pub fn method_chain(
         "method": method_name,
         "chain": chain,
         "note": "Order approximates Odoo override order by reversing dependency-based module load order; exact registry MRO may differ.",
-        "basis": "heuristic_python_parse",
+        "basis": "tree_sitter_python_parse",
         "confidence": if chain.is_empty() { "low" } else { "medium" }
     }))
 }

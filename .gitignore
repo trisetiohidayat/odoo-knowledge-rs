@@ -2,7 +2,8 @@
 /.data/
 /.env
 /benchmarks/runs/
+__pycache__/
+*.pyc
 *.db
 *.db-shm
 *.db-wal
-

@@ -6,7 +6,7 @@ ready until the checklist below is addressed.
 
 ## Parser Correctness
 
-- [ ] Replace the heuristic Python parser with Tree-sitter Python or
+- [x] Replace the heuristic Python parser with Tree-sitter Python or
   `rustpython-parser`.
 - [ ] Support multi-line Python field declarations.
 - [ ] Support multi-line decorators and method signatures.
@@ -108,4 +108,3 @@ ready until the checklist below is addressed.
 - [ ] Add CPU time measurement.
 - [ ] Add concurrent MCP request benchmarks.
 - [ ] Add benchmark comparison across Odoo 17, 18, and 19.
-

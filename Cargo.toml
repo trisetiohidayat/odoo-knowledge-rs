@@ -10,7 +10,7 @@ resolver = "2"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/trisetio/odoo-knowledge-rs"
-rust-version = "1.75"
+rust-version = "1.77"
 
 [workspace.dependencies]
 anyhow = "1"

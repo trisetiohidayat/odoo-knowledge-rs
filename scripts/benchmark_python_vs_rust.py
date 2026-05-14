@@ -227,7 +227,7 @@ def build_rust_impl(root: Path, db_path: Path) -> dict[str, Any]:
     env = os.environ.copy()
     env["ODOO_KNOWLEDGE_DB"] = str(db_path)
     return {
-        "name": "rust-heuristic",
+        "name": "rust-tree-sitter",
         "root": root,
         "db_path": db_path,
         "env": env,
@@ -441,10 +441,10 @@ def summarize_group(rows: list[ScenarioSample]) -> dict[str, Any]:
 
 
 def compare_implementations(implementations: dict[str, Any]) -> dict[str, Any]:
-    if "python" not in implementations or "rust-heuristic" not in implementations:
+    if "python" not in implementations or "rust-tree-sitter" not in implementations:
         return {}
     py = implementations["python"]
-    rs = implementations["rust-heuristic"]
+    rs = implementations["rust-tree-sitter"]
     py_index = mean_index_ms(py)
     rs_index = mean_index_ms(rs)
     return {

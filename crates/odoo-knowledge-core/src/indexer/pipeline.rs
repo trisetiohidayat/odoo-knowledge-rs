@@ -409,13 +409,13 @@ fn index_codebase_inner(con: &Connection, codebase_name: &str) -> Result<IndexSt
                             &model.file_path,
                             model.line_start as i64,
                             model.line_end as i64,
-                            "heuristic_python_parse",
+                            "tree_sitter_python_parse",
                             "medium",
                         )?;
                         con.execute(
                             r#"
                             INSERT INTO graph_edges(codebase_id, source_kind, source, edge_type, target_kind, target, file_path, line_start, confidence, basis)
-                            VALUES (?1, 'module', ?2, 'defines_or_extends', 'model', ?3, ?4, ?5, 'medium', 'heuristic_python_parse')
+                            VALUES (?1, 'module', ?2, 'defines_or_extends', 'model', ?3, ?4, ?5, 'medium', 'tree_sitter_python_parse')
                             "#,
                             params![
                                 codebase.id,
@@ -429,7 +429,7 @@ fn index_codebase_inner(con: &Connection, codebase_name: &str) -> Result<IndexSt
                             con.execute(
                                 r#"
                                 INSERT INTO graph_edges(codebase_id, source_kind, source, edge_type, target_kind, target, file_path, line_start, confidence, basis)
-                                VALUES (?1, 'model', ?2, 'inherits', 'model', ?3, ?4, ?5, 'medium', 'heuristic_python_parse')
+                                VALUES (?1, 'model', ?2, 'inherits', 'model', ?3, ?4, ?5, 'medium', 'tree_sitter_python_parse')
                                 "#,
                                 params![
                                     codebase.id,
@@ -479,14 +479,14 @@ fn index_codebase_inner(con: &Connection, codebase_name: &str) -> Result<IndexSt
                             &field.file_path,
                             field.line_start as i64,
                             field.line_end as i64,
-                            "heuristic_python_parse",
+                            "tree_sitter_python_parse",
                             "medium",
                         )?;
                         if let Some(model_name) = &field.model_name {
                             con.execute(
                                 r#"
                                 INSERT INTO graph_edges(codebase_id, source_kind, source, edge_type, target_kind, target, file_path, line_start, confidence, basis)
-                                VALUES (?1, 'model', ?2, 'defines_field', 'field', ?3, ?4, ?5, 'medium', 'heuristic_python_parse')
+                                VALUES (?1, 'model', ?2, 'defines_field', 'field', ?3, ?4, ?5, 'medium', 'tree_sitter_python_parse')
                                 "#,
                                 params![
                                     codebase.id,
@@ -538,7 +538,7 @@ fn index_codebase_inner(con: &Connection, codebase_name: &str) -> Result<IndexSt
                             &method.file_path,
                             method.line_start as i64,
                             method.line_end as i64,
-                            "heuristic_python_parse",
+                            "tree_sitter_python_parse",
                             "medium",
                         )?;
                         insert_chunk(
@@ -560,7 +560,7 @@ fn index_codebase_inner(con: &Connection, codebase_name: &str) -> Result<IndexSt
                             con.execute(
                                 r#"
                                 INSERT INTO graph_edges(codebase_id, source_kind, source, edge_type, target_kind, target, file_path, line_start, confidence, basis)
-                                VALUES (?1, 'model', ?2, 'defines_method', 'method', ?3, ?4, ?5, 'medium', 'heuristic_python_parse')
+                                VALUES (?1, 'model', ?2, 'defines_method', 'method', ?3, ?4, ?5, 'medium', 'tree_sitter_python_parse')
                                 "#,
                                 params![
                                     codebase.id,
