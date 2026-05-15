@@ -10,6 +10,8 @@ This index links the documentation for the Odoo Knowledge RS MCP server.
 
 ## Operations
 
+- [New Odoo Version Onboarding](new-version-onboarding.md)
+- [Adaptive Parser Roadmap](adaptive-parser-roadmap.md)
 - [Install And Upgrade](install-upgrade.md)
 - [Operations Runbook](operations-runbook.md)
 - [Security Review Checklist](security-review-checklist.md)

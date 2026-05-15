@@ -1752,6 +1752,12 @@ The endpoint is public. Although tools are read-only, public traffic can still c
 
 ## 49. Remaining Stretch Goals
 
+### Sustainable New-Version Onboarding
+
+A one-hit onboarding workflow is available in `scripts/onboard_codebase.py`. It registers, indexes, validates, materializes, validates materialized payloads, optionally runs MCP accuracy checks, and optionally runs a benchmark smoke test for a new codebase such as `odoo-20`. See [New Odoo Version Onboarding](new-version-onboarding.md).
+
+Parser evolution should follow the adaptive parser plan: detect unknown patterns, group them, generate fixtures, and promote only tested rules. See [Adaptive Parser Roadmap](adaptive-parser-roadmap.md).
+
 Stretch goals from the tasklist remain optional:
 
 - Persistent query-result cache keyed by index generation.
