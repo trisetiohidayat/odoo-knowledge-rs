@@ -5,6 +5,7 @@ This index links the documentation for the Odoo Knowledge RS MCP server.
 ## Primary MCP Documentation
 
 - [Complete MCP Technical Documentation](mcp-rs-complete-technical-documentation.md)
+- [MCP Tools Reference](mcp-tools-reference.md)
 - [MCP Performance And Accuracy Tasklist](mcp-performance-accuracy-tasklist.md)
 - [Production Rollout Results](production-rollout-results.md)
 
