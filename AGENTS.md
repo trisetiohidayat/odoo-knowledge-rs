@@ -50,6 +50,10 @@ The live shared index currently contains:
 When adding a new version such as `odoo-20`, prefer the one-hit onboarding
 workflow in `scripts/onboard_codebase.py` and document the result.
 
+When refreshing an existing version to a newer upstream commit, prefer the
+guarded dry-run-first workflow in `scripts/update_indexed_codebase.py`. Do not
+run `--apply` against a live/shared index unless explicitly requested.
+
 ## Main MCP Tools
 
 The server exposes 13 MCP tools:
@@ -104,6 +108,7 @@ Start with:
 - `docs/mcp-performance-accuracy-tasklist.md`
 - `docs/production-rollout-results.md`
 - `docs/new-version-onboarding.md`
+- `docs/latest-index-maintenance.md`
 - `docs/adaptive-parser-roadmap.md`
 
 ## Validation Commands
@@ -161,4 +166,3 @@ Before pushing, scan staged files for:
 
 Do not commit files from live system directories. Do not commit benchmark SQLite
 DBs. `benchmarks/runs/` is intentionally ignored for generated run artifacts.
-

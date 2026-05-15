@@ -15,6 +15,8 @@ python3 scripts/onboard_codebase.py \
   --endpoint https://mcp-odoo-rs.trisetio.my.id/mcp
 ```
 
+For maintaining an already indexed codebase that should follow the latest upstream commit, use [Latest Index Maintenance](latest-index-maintenance.md) instead of onboarding a duplicate codebase.
+
 For local testing, use the release binary path:
 
 ```bash
