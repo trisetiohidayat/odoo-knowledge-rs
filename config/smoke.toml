@@ -5,8 +5,9 @@ log_level = "debug"
 [server]
 host = "127.0.0.1"
 port = 18765
-bearer_token_env = "ODOO_KNOWLEDGE_BEARER_TOKEN"
+request_body_limit_bytes = 1048576
+request_timeout_secs = 30
+cors_allow_origin = "http://127.0.0.1"
 
 [indexer]
 parallelism = 4
-

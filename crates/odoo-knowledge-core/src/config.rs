@@ -19,6 +19,12 @@ pub struct ServerConfig {
     pub host: String,
     pub port: u16,
     pub bearer_token_env: Option<String>,
+    #[serde(default = "default_request_body_limit_bytes")]
+    pub request_body_limit_bytes: usize,
+    #[serde(default = "default_request_timeout_secs")]
+    pub request_timeout_secs: u64,
+    #[serde(default = "default_cors_allow_origin")]
+    pub cors_allow_origin: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,11 +41,26 @@ impl Default for AppConfig {
             server: ServerConfig {
                 host: "127.0.0.1".to_string(),
                 port: 8765,
-                bearer_token_env: Some("ODOO_KNOWLEDGE_BEARER_TOKEN".to_string()),
+                bearer_token_env: None,
+                request_body_limit_bytes: default_request_body_limit_bytes(),
+                request_timeout_secs: default_request_timeout_secs(),
+                cors_allow_origin: default_cors_allow_origin(),
             },
             indexer: IndexerConfig { parallelism: 4 },
         }
     }
+}
+
+fn default_request_body_limit_bytes() -> usize {
+    1024 * 1024
+}
+
+fn default_request_timeout_secs() -> u64 {
+    30
+}
+
+fn default_cors_allow_origin() -> String {
+    "http://127.0.0.1".to_string()
 }
 
 impl AppConfig {

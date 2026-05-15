@@ -77,7 +77,16 @@ fn index_codebase_inner(con: &Connection, codebase_name: &str) -> Result<IndexSt
     }
 
     let mut stats = IndexStats::default();
-    for manifest in manifests {
+    let total_modules = manifests.len();
+    for (module_idx, manifest) in manifests.into_iter().enumerate() {
+        if module_idx == 0 || (module_idx + 1) % 100 == 0 || module_idx + 1 == total_modules {
+            eprintln!(
+                "indexing module {}/{}: {}",
+                module_idx + 1,
+                total_modules,
+                manifest.module
+            );
+        }
         insert_module(con, codebase.id, &codebase.root_path, &manifest)?;
         insert_symbol(
             con,
@@ -216,8 +225,8 @@ fn index_codebase_inner(con: &Connection, codebase_name: &str) -> Result<IndexSt
                             &symbol.file_path,
                             symbol.line_start as i64,
                             symbol.line_end as i64,
-                            "string_js_parse",
-                            "medium",
+                            "tree_sitter_javascript_parse",
+                            "high",
                         )?;
                         stats.frontend += 1;
                     }

@@ -1,18 +1,22 @@
 [Unit]
 Description=Odoo Knowledge RS MCP Server
 After=network.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 User=ubuntu
 Group=ubuntu
-Environment=ODOO_KNOWLEDGE_CONFIG=/etc/odoo-knowledge/production.toml
-Environment=ODOO_KNOWLEDGE_BEARER_TOKEN=change-me
-WorkingDirectory=/var/lib/odoo-knowledge
-ExecStart=/usr/local/bin/odoo-knowledge serve
+Environment=ODOO_KNOWLEDGE_CONFIG=<CONFIG_DIR>/production.toml
+WorkingDirectory=<DATA_DIR>
+ExecStart=<INSTALL_BIN>/odoo-knowledge serve
 Restart=always
 RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=<DATA_DIR>
 
 [Install]
 WantedBy=multi-user.target
-

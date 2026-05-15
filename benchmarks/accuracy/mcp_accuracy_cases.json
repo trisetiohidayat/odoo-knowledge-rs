@@ -1,0 +1,298 @@
+{
+  "version": 1,
+  "description": "Representative MCP accuracy checks for Odoo Knowledge tools. These assertions guard exact structured lookups and search relevance without claiming runtime Odoo behavior.",
+  "cases": [
+    {
+      "id": "search_sale_order_finds_model",
+      "tool": "odoo_search",
+      "arguments": {
+        "query": "sale.order",
+        "filters": {
+          "codebase": "odoo-19",
+          "limit": 10
+        }
+      },
+      "expect": {
+        "contains": [
+          "model:sale.order",
+          "sale.order"
+        ],
+        "min_counts": [
+          {
+            "path": "results.symbols",
+            "count": 1
+          }
+        ],
+        "ranking": [
+          {
+            "path": "results.symbols",
+            "contains": "model:sale.order",
+            "top_k": 5
+          }
+        ]
+      }
+    },
+    {
+      "id": "model_context_sale_order_has_contributors",
+      "tool": "odoo_model_context",
+      "arguments": {
+        "model_name": "sale.order",
+        "codebase": "odoo-19"
+      },
+      "expect": {
+        "equals": [
+          {
+            "path": "model",
+            "value": "sale.order"
+          }
+        ],
+        "contains": [
+          "addons/sale/models/sale_order.py"
+        ],
+        "min_counts": [
+          {
+            "path": "contributors",
+            "count": 1
+          },
+          {
+            "path": "methods",
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "field_context_available_in_pos_exact_definition",
+      "tool": "odoo_field_context",
+      "arguments": {
+        "model_name": "product.template",
+        "field_name": "available_in_pos",
+        "codebase": "odoo-19"
+      },
+      "expect": {
+        "equals": [
+          {
+            "path": "model",
+            "value": "product.template"
+          },
+          {
+            "path": "field",
+            "value": "available_in_pos"
+          }
+        ],
+        "contains": [
+          "point_of_sale",
+          "addons/point_of_sale/models/product_template.py"
+        ],
+        "min_counts": [
+          {
+            "path": "definitions",
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "method_chain_sale_confirm_has_method",
+      "tool": "odoo_method_chain",
+      "arguments": {
+        "model_name": "sale.order",
+        "method_name": "action_confirm",
+        "codebase": "odoo-19"
+      },
+      "expect": {
+        "equals": [
+          {
+            "path": "model",
+            "value": "sale.order"
+          },
+          {
+            "path": "method",
+            "value": "action_confirm"
+          }
+        ],
+        "contains": [
+          "action_confirm"
+        ],
+        "min_counts": [
+          {
+            "path": "chain",
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "xmlid_lookup_pos_product_template_view",
+      "tool": "odoo_xmlid_lookup",
+      "arguments": {
+        "xmlid": "point_of_sale.product_template_form_view",
+        "codebase": "odoo-19"
+      },
+      "expect": {
+        "equals": [
+          {
+            "path": "xmlid",
+            "value": "point_of_sale.product_template_form_view"
+          }
+        ],
+        "contains": [
+          "addons/point_of_sale/views/product_view.xml",
+          "product.template"
+        ],
+        "min_counts": [
+          {
+            "path": "records",
+            "count": 1
+          },
+          {
+            "path": "views",
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "module_context_point_of_sale_has_manifest",
+      "tool": "odoo_module_context",
+      "arguments": {
+        "module_name": "point_of_sale",
+        "codebase": "odoo-19"
+      },
+      "expect": {
+        "equals": [
+          {
+            "path": "module.name",
+            "value": "point_of_sale"
+          }
+        ],
+        "contains": [
+          "point_of_sale",
+          "product.template"
+        ],
+        "min_counts": [
+          {
+            "path": "models",
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "search_exact_method_action_confirm_top1",
+      "tool": "odoo_search",
+      "arguments": {
+        "query": "sale.order.action_confirm",
+        "filters": {
+          "codebase": "odoo-19",
+          "limit": 10
+        }
+      },
+      "expect": {
+        "contains": [
+          "method:sale.order.action_confirm"
+        ],
+        "min_counts": [
+          {
+            "path": "results.symbols",
+            "count": 1
+          }
+        ],
+        "ranking": [
+          {
+            "path": "results.symbols",
+            "contains": "method:sale.order.action_confirm",
+            "top_k": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "search_exact_field_available_in_pos_top1",
+      "tool": "odoo_search",
+      "arguments": {
+        "query": "product.template.available_in_pos",
+        "filters": {
+          "codebase": "odoo-19",
+          "limit": 10
+        }
+      },
+      "expect": {
+        "contains": [
+          "field:product.template.available_in_pos"
+        ],
+        "min_counts": [
+          {
+            "path": "results.symbols",
+            "count": 1
+          }
+        ],
+        "ranking": [
+          {
+            "path": "results.symbols",
+            "contains": "field:product.template.available_in_pos",
+            "top_k": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "search_exact_xmlid_pos_view_top1",
+      "tool": "odoo_search",
+      "arguments": {
+        "query": "point_of_sale.product_template_form_view",
+        "filters": {
+          "codebase": "odoo-19",
+          "limit": 10
+        }
+      },
+      "expect": {
+        "contains": [
+          "xmlid:point_of_sale.product_template_form_view"
+        ],
+        "min_counts": [
+          {
+            "path": "results.symbols",
+            "count": 1
+          }
+        ],
+        "ranking": [
+          {
+            "path": "results.symbols",
+            "contains": "xmlid:point_of_sale.product_template_form_view",
+            "top_k": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "search_exact_module_point_of_sale_top1",
+      "tool": "odoo_search",
+      "arguments": {
+        "query": "point_of_sale",
+        "filters": {
+          "codebase": "odoo-19",
+          "limit": 10
+        }
+      },
+      "expect": {
+        "contains": [
+          "module:point_of_sale"
+        ],
+        "min_counts": [
+          {
+            "path": "results.symbols",
+            "count": 1
+          }
+        ],
+        "ranking": [
+          {
+            "path": "results.symbols",
+            "contains": "module:point_of_sale",
+            "top_k": 1
+          }
+        ]
+      }
+    }
+  ]
+}

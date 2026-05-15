@@ -24,6 +24,7 @@ pub struct PythonModel {
     pub inherits: String,
     pub line_start: usize,
     pub line_end: usize,
+    pub confidence: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -40,6 +41,7 @@ pub struct PythonField {
     pub related: Option<String>,
     pub line_start: usize,
     pub line_end: usize,
+    pub confidence: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -54,6 +56,7 @@ pub struct PythonMethod {
     pub calls: Vec<String>,
     pub line_start: usize,
     pub line_end: usize,
+    pub confidence: String,
 }
 
 pub fn parse_python_file(path: &Path, module: &str, root: &Path) -> Result<PythonParseResult> {
@@ -189,6 +192,7 @@ fn parse_class(
             inherits,
             line_start: line_start(class_node),
             line_end: line_end(class_node),
+            confidence: "high".to_string(),
         });
     }
 
@@ -248,6 +252,7 @@ fn parse_method(
         calls: extract_calls(node, source, &method_text),
         line_start: line_start(node),
         line_end: line_end(node),
+        confidence: "high".to_string(),
     });
 }
 
@@ -308,6 +313,7 @@ fn parse_field(
         related: keyword_string(&call_text, "related"),
         line_start: line_start(node),
         line_end: line_end(node),
+        confidence: "high".to_string(),
     })
 }
 
@@ -522,9 +528,93 @@ mod tests {
         assert_eq!(parsed.fields.len(), 1);
         assert_eq!(parsed.fields[0].field_name, "x_reference");
         assert_eq!(parsed.fields[0].field_type.as_deref(), Some("Char"));
+        assert_eq!(
+            parsed.fields[0].compute.as_deref(),
+            Some("_compute_x_reference")
+        );
+        assert_eq!(parsed.methods.len(), 2);
         assert!(parsed
             .methods
             .iter()
             .any(|method| method.method_name == "action_confirm" && method.calls_super));
+        assert!(parsed
+            .methods
+            .iter()
+            .any(|method| method.method_name == "_after_confirm_hook" && !method.calls_super));
+    }
+
+    #[test]
+    fn parses_multiline_python_constructs() {
+        let root = std::env::temp_dir().join(format!(
+            "odoo-knowledge-python-parser-{}",
+            std::process::id()
+        ));
+        let module_dir = root.join("complex_addon/models");
+        std::fs::create_dir_all(&module_dir).unwrap();
+        let path = module_dir.join("complex_model.py");
+        std::fs::write(
+            &path,
+            r#"from odoo import api, fields, models
+
+class ComplexModel(models.Model):
+    _name = "complex.model"
+    _inherit = [
+        "mail.thread",
+        "portal.mixin",
+    ]
+    _inherits = {
+        "res.partner": "partner_id",
+    }
+
+    partner_id = fields.Many2one(
+        "res.partner",
+        compute="_compute_partner_id",
+    )
+
+    @api.depends(
+        "partner_id",
+    )
+    def action_run(
+        self,
+        force=False,
+    ):
+        self.partner_id.name_get()
+        return super().action_run()
+"#,
+        )
+        .unwrap();
+
+        let parsed = parse_python_file(&path, "complex_addon", &root).unwrap();
+        assert_eq!(parsed.models.len(), 1);
+        assert_eq!(
+            parsed.models[0].model_name.as_deref(),
+            Some("complex.model")
+        );
+        assert_eq!(
+            parsed.models[0].inherit,
+            vec!["mail.thread", "portal.mixin"]
+        );
+        assert_eq!(parsed.models[0].confidence, "high");
+        assert_eq!(parsed.fields.len(), 1);
+        assert_eq!(parsed.fields[0].field_name, "partner_id");
+        assert_eq!(parsed.fields[0].field_type.as_deref(), Some("Many2one"));
+        assert_eq!(parsed.fields[0].comodel.as_deref(), Some("res.partner"));
+        assert_eq!(
+            parsed.fields[0].compute.as_deref(),
+            Some("_compute_partner_id")
+        );
+        assert!(parsed.fields[0].line_end > parsed.fields[0].line_start);
+        let method = parsed
+            .methods
+            .iter()
+            .find(|method| method.method_name == "action_run")
+            .unwrap();
+        assert_eq!(method.decorators, vec!["api.depends"]);
+        assert!(method.calls_super);
+        assert!(method
+            .calls
+            .contains(&"self.partner_id.name_get".to_string()));
+        assert!(method.line_end > method.line_start);
+        assert_eq!(method.confidence, "high");
     }
 }

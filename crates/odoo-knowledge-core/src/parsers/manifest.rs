@@ -105,3 +105,33 @@ fn extract_raw_value<'a>(text: &'a str, key: &str) -> Option<&'a str> {
     }
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_mini_sale_manifest_fixture() {
+        let root = fixture_root();
+        let path = root.join("__manifest__.py");
+        let manifest = parse_manifest(&path).unwrap();
+
+        assert_eq!(manifest.module, "mini_sale");
+        assert_eq!(manifest.path, root);
+        assert_eq!(manifest.manifest_path, path);
+        assert_eq!(manifest.depends, vec!["sale"]);
+        assert!(manifest.installable);
+        assert!(!manifest.auto_install);
+        assert!(!manifest.application);
+        assert_eq!(
+            manifest.summary,
+            "Small addon fixture for Rust parser tests"
+        );
+    }
+
+    fn fixture_root() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .join("tests/fixtures/addons/mini_sale")
+    }
+}

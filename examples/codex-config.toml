@@ -1,6 +1,3 @@
 [mcp_servers.odoo-knowledge-rs]
-command = "/usr/local/bin/odoo-knowledge"
-args = ["--config", "/etc/odoo-knowledge/production.toml", "mcp"]
-
-[mcp_servers.odoo-knowledge-rs.env]
-ODOO_KNOWLEDGE_BEARER_TOKEN = "change-me"
+command = "<INSTALL_BIN>/odoo-knowledge"
+args = ["--config", "<CONFIG_DIR>/production.toml", "mcp"]

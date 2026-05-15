@@ -6,7 +6,7 @@ with the Rust implementation.
 Current Rust parser status:
 
 - Python parser: Tree-sitter based.
-- JavaScript parser: heuristic.
+- JavaScript parser: Tree-sitter.
 
 The benchmark creates isolated SQLite databases under `benchmarks/runs/<run_id>`
 so repeated runs do not modify the development or production indexes.
@@ -20,16 +20,44 @@ Measured areas:
 - CLI search latency
 - tool latency for model, field, method, view, XMLID, and module context
 - output size and scenario-specific result metrics
+- warmup iterations excluded from latency summaries
+- p95 and p99 query/tool latency
+- child-process CPU time and max RSS samples
+- optional regression thresholds via `--thresholds-json`
+- cold index rebuild and optional warm reindex coverage via `--warm-index-iterations`
 
 Example:
 
 ```bash
-cd /home/ubuntu/odoo/odoo-knowledge-rs
+cd <REPO_ROOT>
 python3 scripts/benchmark_python_vs_rust.py \
-  --odoo-root /home/ubuntu/odoo/odoo-19 \
+  --odoo-root <ODOO_SOURCE_ROOT>/odoo-19 \
   --index-iterations 1 \
+  --warm-index-iterations 1 \
   --query-iterations 5 \
+  --warmup-iterations 1 \
   --keep-dbs
+```
+
+Threshold file example:
+
+```json
+{
+  "implementations": {
+    "rust-tree-sitter": {
+      "max_mean_index_ms": 30000,
+      "scenarios": {
+        "search_payment_screen": {
+          "max_mean_ms": 250,
+          "max_p95_ms": 400,
+          "max_p99_ms": 500,
+          "max_cpu_mean_ms": 250,
+          "max_rss_kb": 200000
+        }
+      }
+    }
+  }
+}
 ```
 
 Run only Rust:

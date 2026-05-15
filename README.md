@@ -12,7 +12,13 @@ Current parser status:
   `super()` detection, and call names.
 - XML: record, view, action, and menu parser.
 - CSV: `ir.model.access.csv` parser.
-- JavaScript: heuristic parser for POS/Owl patch, registry, and class symbols.
+- JavaScript: Tree-sitter based parser for POS/Owl patch, registry, and class symbols.
+
+## Documentation
+
+- [Documentation Index](docs/INDEX.md)
+- [Complete MCP Technical Documentation](docs/mcp-rs-complete-technical-documentation.md)
+- [Production Rollout Results](docs/production-rollout-results.md)
 
 ## Development
 
@@ -26,7 +32,7 @@ Compare the Python MVP with the Rust implementation:
 
 ```bash
 python3 scripts/benchmark_python_vs_rust.py \
-  --odoo-root /home/ubuntu/odoo/odoo-19 \
+  --odoo-root <ODOO_SOURCE_ROOT>/odoo-19 \
   --index-iterations 1 \
   --query-iterations 5
 ```
@@ -35,7 +41,7 @@ See [docs/benchmarking.md](docs/benchmarking.md).
 
 ## Production Shape
 
-- Binary: `/usr/local/bin/odoo-knowledge`
-- Config: `/etc/odoo-knowledge/production.toml`
-- Data: `/var/lib/odoo-knowledge/index.db`
+- Binary: `<INSTALL_BIN>/odoo-knowledge`
+- Config: `<CONFIG_DIR>/production.toml`
+- Data: `<DATA_DIR>/index.db`
 - Public access through nginx/Caddy reverse proxy.

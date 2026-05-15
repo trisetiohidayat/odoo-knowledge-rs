@@ -201,3 +201,43 @@ fn rel_path(path: &Path, root: &Path) -> String {
         .to_string_lossy()
         .replace('\\', "/")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_mini_sale_view_fixture() {
+        let root = fixture_root();
+        let path = root.join("views/sale_order_views.xml");
+        let parsed = parse_xml_file(&path, "mini_sale", &root);
+
+        assert!(parsed.errors.is_empty());
+        assert_eq!(parsed.records.len(), 1);
+        assert_eq!(parsed.records[0].xmlid, "mini_sale.mini_sale_order_form");
+        assert_eq!(
+            parsed.records[0].record_model.as_deref(),
+            Some("ir.ui.view")
+        );
+        assert_eq!(parsed.records[0].file_path, "views/sale_order_views.xml");
+        assert_eq!(parsed.records[0].line_start, 2);
+
+        assert_eq!(parsed.views.len(), 1);
+        let view = &parsed.views[0];
+        assert_eq!(
+            view.xmlid.as_deref(),
+            Some("mini_sale.mini_sale_order_form")
+        );
+        assert_eq!(view.view_model.as_deref(), Some("sale.order"));
+        assert_eq!(view.inherit_id.as_deref(), Some("sale.view_order_form"));
+        assert_eq!(view.xpath_count, 1);
+        assert!(parsed.actions.is_empty());
+        assert!(parsed.menus.is_empty());
+    }
+
+    fn fixture_root() -> std::path::PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .join("tests/fixtures/addons/mini_sale")
+    }
+}
