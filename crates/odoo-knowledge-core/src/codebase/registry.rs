@@ -113,7 +113,9 @@ pub fn get_codebase(con: &Connection, name: Option<&str>) -> Result<Codebase> {
         stmt.query([])?
     };
     let Some(row) = rows.next()? else {
-        return Err(Error::CodebaseNotFound(codebase_not_found_message(con, name)?));
+        return Err(Error::CodebaseNotFound(codebase_not_found_message(
+            con, name,
+        )?));
     };
     Ok(Codebase {
         id: row.get(0)?,
