@@ -57,6 +57,26 @@ fn cli_registry_index_search_and_tool_smoke() {
     ]);
     assert_eq!(indexed_copy["stats"]["modules"], 1);
 
+    let added_odoo17 = run_json(&[
+        "--db",
+        db_path.to_str().unwrap(),
+        "add-codebase",
+        "--name",
+        "odoo-17",
+        "--path",
+        fixture_root.to_str().unwrap(),
+    ]);
+    assert_eq!(added_odoo17["name"], "odoo-17");
+
+    let indexed_odoo17 = run_json(&[
+        "--db",
+        db_path.to_str().unwrap(),
+        "index",
+        "--codebase",
+        "odoo-17",
+    ]);
+    assert_eq!(indexed_odoo17["stats"]["modules"], 1);
+
     let search = run_json(&[
         "--db",
         db_path.to_str().unwrap(),
@@ -86,6 +106,26 @@ fn cli_registry_index_search_and_tool_smoke() {
         .unwrap()
         .iter()
         .any(|field| field["field_name"] == "x_reference"));
+
+    let version_alias_tool = run_json(&[
+        "--db",
+        db_path.to_str().unwrap(),
+        "tool",
+        "odoo_model_context",
+        r#"{"model_name":"sale.order","codebase":"Odoo 17 CE"}"#,
+    ]);
+    assert_eq!(version_alias_tool["codebase"]["name"], "odoo-17");
+
+    let unknown_codebase_error = run_failure(&[
+        "--db",
+        db_path.to_str().unwrap(),
+        "tool",
+        "odoo_model_context",
+        r#"{"model_name":"sale.order","codebase":"suqma-local"}"#,
+    ]);
+    assert!(unknown_codebase_error.contains("suqma-local"));
+    assert!(unknown_codebase_error.contains("Available codebases"));
+    assert!(unknown_codebase_error.contains("not a local project/addons directory name"));
 
     let impact = run_json(&[
         "--db",
@@ -196,6 +236,22 @@ fn run_json(args: &[&str]) -> Value {
         String::from_utf8_lossy(&output.stderr)
     );
     serde_json::from_slice(&output.stdout).unwrap()
+}
+
+fn run_failure(args: &[&str]) -> String {
+    let output = Command::new(odoo_binary()).args(args).output().unwrap();
+    assert!(
+        !output.status.success(),
+        "command unexpectedly succeeded: {:?}\nstdout:\n{}\nstderr:\n{}",
+        args,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    )
 }
 
 fn odoo_binary() -> PathBuf {

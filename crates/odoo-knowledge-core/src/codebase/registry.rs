@@ -86,7 +86,12 @@ pub fn list_codebases(con: &Connection) -> Result<Vec<Codebase>> {
 }
 
 pub fn get_codebase(con: &Connection, name: Option<&str>) -> Result<Codebase> {
-    let sql = if name.is_some() {
+    let resolved_name = if let Some(name) = name {
+        Some(resolve_codebase_name(con, name)?)
+    } else {
+        None
+    };
+    let sql = if resolved_name.is_some() {
         r#"
         SELECT id, name, root_path, odoo_series, version, git_remote, git_branch, git_commit, indexed_at
         FROM codebases
@@ -102,15 +107,13 @@ pub fn get_codebase(con: &Connection, name: Option<&str>) -> Result<Codebase> {
     };
 
     let mut stmt = con.prepare(sql)?;
-    let mut rows = if let Some(name) = name {
+    let mut rows = if let Some(name) = resolved_name.as_deref() {
         stmt.query([name])?
     } else {
         stmt.query([])?
     };
     let Some(row) = rows.next()? else {
-        return Err(Error::CodebaseNotFound(
-            name.unwrap_or("(default)").to_string(),
-        ));
+        return Err(Error::CodebaseNotFound(codebase_not_found_message(con, name)?));
     };
     Ok(Codebase {
         id: row.get(0)?,
@@ -123,4 +126,98 @@ pub fn get_codebase(con: &Connection, name: Option<&str>) -> Result<Codebase> {
         git_commit: row.get(7)?,
         indexed_at: row.get(8)?,
     })
+}
+
+fn resolve_codebase_name(con: &Connection, requested: &str) -> Result<String> {
+    let requested = requested.trim();
+    if requested.is_empty() {
+        return Err(Error::CodebaseNotFound(codebase_not_found_message(
+            con,
+            Some(requested),
+        )?));
+    }
+    if codebase_exists(con, requested)? {
+        return Ok(requested.to_string());
+    }
+
+    let Some(requested_series) = extract_odoo_series(requested) else {
+        return Err(Error::CodebaseNotFound(codebase_not_found_message(
+            con,
+            Some(requested),
+        )?));
+    };
+    let candidates = list_codebases(con)?
+        .into_iter()
+        .filter(|codebase| codebase_matches_series(codebase, &requested_series))
+        .collect::<Vec<_>>();
+    if candidates.len() == 1 {
+        return Ok(candidates[0].name.clone());
+    }
+
+    Err(Error::CodebaseNotFound(codebase_not_found_message(
+        con,
+        Some(requested),
+    )?))
+}
+
+fn codebase_exists(con: &Connection, name: &str) -> Result<bool> {
+    let count = con.query_row(
+        "SELECT COUNT(*) FROM codebases WHERE name=?1",
+        [name],
+        |row| row.get::<_, i64>(0),
+    )?;
+    Ok(count > 0)
+}
+
+fn codebase_matches_series(codebase: &Codebase, requested_series: &str) -> bool {
+    codebase
+        .odoo_series
+        .as_deref()
+        .is_some_and(|series| series.starts_with(requested_series))
+        || codebase
+            .version
+            .as_deref()
+            .is_some_and(|version| version.starts_with(requested_series))
+        || extract_odoo_series(&codebase.name).as_deref() == Some(requested_series)
+}
+
+fn extract_odoo_series(value: &str) -> Option<String> {
+    let mut digits = String::new();
+    for ch in value.chars() {
+        if ch.is_ascii_digit() {
+            digits.push(ch);
+            if digits.len() == 2 {
+                let number = digits.parse::<u8>().ok()?;
+                if (8..=99).contains(&number) {
+                    return Some(digits);
+                }
+                digits.clear();
+            }
+        } else {
+            digits.clear();
+        }
+    }
+    None
+}
+
+fn codebase_not_found_message(con: &Connection, requested: Option<&str>) -> Result<String> {
+    let available = list_codebases(con)?;
+    let available_names = available
+        .iter()
+        .map(|codebase| codebase.name.as_str())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let mut message = format!(
+        "codebase `{}` is not indexed. `codebase` must be one of the indexed Odoo source names, not a local project/addons directory name.",
+        requested.unwrap_or("(default)")
+    );
+    if available.is_empty() {
+        message.push_str(" No codebases are registered in this index yet.");
+    } else {
+        message.push_str(&format!(" Available codebases: {available_names}."));
+    }
+    message.push_str(
+        " If your local project uses Odoo CE 17/18/19, pass the matching indexed core codebase such as `odoo-17`, `odoo-18`, or `odoo-19`. You may also pass version-like text such as `17`, `17.0`, or `Odoo 17 CE` when exactly one indexed codebase matches that series.",
+    );
+    Ok(message)
 }

@@ -759,7 +759,7 @@ fn tool_schemas() -> Vec<serde_json::Value> {
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
-                        "codebase": string_schema("Optional codebase name."),
+                        "codebase": codebase_schema(),
                         "module": string_schema("Optional module filter."),
                         "limit": {"type": "integer", "minimum": 1, "maximum": 100, "description": "Maximum result count."}
                     }
@@ -817,8 +817,8 @@ fn tool_schemas() -> Vec<serde_json::Value> {
             "Compare a symbol across two indexed Odoo codebases.",
             serde_json::json!({
                 "symbol": string_schema("Symbol name, qualname, or file path to compare."),
-                "left_codebase": string_schema("Left codebase name."),
-                "right_codebase": string_schema("Right codebase name.")
+                "left_codebase": string_schema("Left indexed Odoo source codebase, for example `odoo-17`. Use the Odoo CE/core version, not the local project/addons directory name."),
+                "right_codebase": string_schema("Right indexed Odoo source codebase, for example `odoo-19`. Use the Odoo CE/core version, not the local project/addons directory name.")
             }),
             &["symbol", "left_codebase", "right_codebase"],
         ),
@@ -897,10 +897,16 @@ fn common_props(mut properties: serde_json::Value) -> serde_json::Value {
     if let Some(object) = properties.as_object_mut() {
         object.insert(
             "codebase".to_string(),
-            string_schema("Optional codebase name."),
+            codebase_schema(),
         );
     }
     properties
+}
+
+fn codebase_schema() -> serde_json::Value {
+    string_schema(
+        "Optional indexed Odoo source codebase. Use the Odoo CE/core version this project runs on, for example `odoo-17`, `odoo-18`, or `odoo-19`; do not use the local project/addons directory name unless that exact name is indexed. Version-like values such as `17`, `17.0`, or `Odoo 17 CE` may resolve when exactly one indexed codebase matches.",
+    )
 }
 
 fn string_schema(description: &str) -> serde_json::Value {
