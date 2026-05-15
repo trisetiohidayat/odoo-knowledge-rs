@@ -562,12 +562,13 @@ fn call_tool(
             let limit = filters
                 .get("limit")
                 .and_then(serde_json::Value::as_u64)
+                .or_else(|| args.get("limit").and_then(serde_json::Value::as_u64))
                 .unwrap_or(20) as usize;
             let response = search(
                 con,
                 required(get("query"), "query")?,
-                filters.get("codebase").and_then(serde_json::Value::as_str),
-                filters.get("module").and_then(serde_json::Value::as_str),
+                search_arg(args, filters, "codebase"),
+                search_arg(args, filters, "module"),
                 limit,
             )?;
             serde_json::to_value(response)?
@@ -669,6 +670,17 @@ fn required<'a>(value: Option<&'a str>, name: &str) -> Result<&'a str> {
     })
 }
 
+fn search_arg<'a>(
+    args: &'a serde_json::Value,
+    filters: &'a serde_json::Value,
+    key: &str,
+) -> Option<&'a str> {
+    filters
+        .get(key)
+        .and_then(serde_json::Value::as_str)
+        .or_else(|| args.get(key).and_then(serde_json::Value::as_str))
+}
+
 fn run_mcp_stdio(con: &rusqlite::Connection) -> Result<()> {
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
@@ -755,6 +767,9 @@ fn tool_schemas() -> Vec<serde_json::Value> {
             "Hybrid lexical/metadata search over indexed Odoo codebase.",
             serde_json::json!({
                 "query": string_schema("Search query."),
+                "codebase": string_schema("Compatibility alias for filters.codebase. Prefer filters.codebase. Uses the indexed Odoo CE/core version, for example `odoo-17`, not the local project/addons directory name."),
+                "module": string_schema("Compatibility alias for filters.module. Prefer filters.module."),
+                "limit": {"type": "integer", "minimum": 1, "maximum": 100, "description": "Compatibility alias for filters.limit. Prefer filters.limit."},
                 "filters": {
                     "type": "object",
                     "additionalProperties": false,

@@ -116,6 +116,22 @@ fn cli_registry_index_search_and_tool_smoke() {
     ]);
     assert_eq!(version_alias_tool["codebase"]["name"], "odoo-17");
 
+    let search_top_level_alias = run_json(&[
+        "--db",
+        db_path.to_str().unwrap(),
+        "tool",
+        "odoo_search",
+        r#"{"query":"sale.order","codebase":"Odoo 17 CE","limit":2}"#,
+    ]);
+    assert_eq!(search_top_level_alias["codebase"]["name"], "odoo-17");
+    assert!(
+        search_top_level_alias["results"]["symbols"]
+            .as_array()
+            .unwrap()
+            .len()
+            <= 2
+    );
+
     let unknown_codebase_error = run_failure(&[
         "--db",
         db_path.to_str().unwrap(),
