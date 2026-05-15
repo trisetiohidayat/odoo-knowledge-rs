@@ -154,13 +154,14 @@ parallelism = 1
     let initialize_payload: Value = serde_json::from_str(initialize_body).unwrap();
     assert_eq!(initialize_payload["result"]["serverInfo"]["name"], "odoo-knowledge-rs");
 
-    let notification = http_post_json(
+    let notification = http_post_json_raw(
         port,
         r#"{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}"#,
+        &[],
     );
+    assert!(notification.starts_with("HTTP/1.1 202 Accepted"), "{notification}");
     let notification_body = notification.split("\r\n\r\n").nth(1).unwrap_or("");
-    let notification_payload: Value = serde_json::from_str(notification_body).unwrap();
-    assert!(notification_payload.get("error").is_none(), "{notification_payload}");
+    assert!(notification_body.is_empty(), "{notification_body}");
 
     let tools = http_post_json(
         port,

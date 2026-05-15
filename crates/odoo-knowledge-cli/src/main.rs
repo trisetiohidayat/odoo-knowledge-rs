@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 use axum::extract::DefaultBodyLimit;
 use axum::extract::State;
 use axum::http::{HeaderMap, HeaderValue, Method, StatusCode};
+use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use clap::{Parser, Subcommand};
@@ -379,7 +380,7 @@ async fn http_mcp(
     State(state): State<HttpState>,
     headers: HeaderMap,
     Json(request): Json<serde_json::Value>,
-) -> std::result::Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+) -> std::result::Result<Response, (StatusCode, Json<serde_json::Value>)> {
     let request_started_at = std::time::Instant::now();
     let method = request.get("method").and_then(serde_json::Value::as_str);
     let tool_name = request
@@ -402,6 +403,16 @@ async fn http_mcp(
         .get("id")
         .cloned()
         .unwrap_or(serde_json::Value::Null);
+    if method == Some("notifications/initialized") {
+        tracing::info!(
+            method = "notifications/initialized",
+            tool = "",
+            is_error = false,
+            elapsed_ms = request_started_at.elapsed().as_millis() as u64,
+            "mcp request completed"
+        );
+        return Ok(StatusCode::ACCEPTED.into_response());
+    }
     let response = match method {
         Some("initialize") => rpc_result(
             request_id,
@@ -411,7 +422,6 @@ async fn http_mcp(
                 "serverInfo": {"name": "odoo-knowledge-rs", "version": "0.1.0"}
             }),
         ),
-        Some("notifications/initialized") => rpc_result(request_id, serde_json::json!({})),
         Some("tools/list") => rpc_result(
             request_id,
             serde_json::json!({"tools": state.tool_schemas.as_ref().clone()}),
@@ -437,7 +447,7 @@ async fn http_mcp(
                         )
                     })?;
                 if started_at.elapsed() > state.request_timeout {
-                    return Ok(Json(rpc_error(request_id, -32000, "request timeout")));
+                    return Ok(Json(rpc_error(request_id, -32000, "request timeout")).into_response());
                 }
                 match result {
                     Ok(payload) => {
@@ -473,7 +483,7 @@ async fn http_mcp(
         elapsed_ms = request_started_at.elapsed().as_millis() as u64,
         "mcp request completed"
     );
-    Ok(Json(response))
+    Ok(Json(response).into_response())
 }
 
 fn tool_call_result(payload: serde_json::Value) -> serde_json::Value {
