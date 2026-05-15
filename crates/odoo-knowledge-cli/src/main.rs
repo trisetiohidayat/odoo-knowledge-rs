@@ -411,6 +411,7 @@ async fn http_mcp(
                 "serverInfo": {"name": "odoo-knowledge-rs", "version": "0.1.0"}
             }),
         ),
+        Some("notifications/initialized") => rpc_result(request_id, serde_json::json!({})),
         Some("tools/list") => rpc_result(
             request_id,
             serde_json::json!({"tools": state.tool_schemas.as_ref().clone()}),

@@ -109,6 +109,72 @@ parallelism = 1
 }
 
 #[test]
+fn http_jsonrpc_accepts_initialized_notification() {
+    let db_path = temp_path("http-initialized", "db");
+    let config_path = temp_path("http-initialized", "toml");
+    let port = free_port();
+    std::env::remove_var("ODOO_KNOWLEDGE_TEST_EMPTY_TOKEN");
+    std::fs::write(
+        &config_path,
+        format!(
+            r#"environment = "test"
+database_path = "{}"
+log_level = "debug"
+
+[server]
+host = "127.0.0.1"
+port = {port}
+bearer_token_env = "ODOO_KNOWLEDGE_TEST_EMPTY_TOKEN"
+
+[indexer]
+parallelism = 1
+"#,
+            db_path.display()
+        ),
+    )
+    .unwrap();
+
+    let mut child = Command::new(odoo_binary())
+        .arg("--config")
+        .arg(&config_path)
+        .arg("serve")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+
+    wait_for_server_banner(&mut child);
+    wait_for_tcp(port);
+
+    let initialize = http_post_json(
+        port,
+        r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}"#,
+    );
+    let initialize_body = initialize.split("\r\n\r\n").nth(1).unwrap_or("");
+    let initialize_payload: Value = serde_json::from_str(initialize_body).unwrap();
+    assert_eq!(initialize_payload["result"]["serverInfo"]["name"], "odoo-knowledge-rs");
+
+    let notification = http_post_json(
+        port,
+        r#"{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}"#,
+    );
+    let notification_body = notification.split("\r\n\r\n").nth(1).unwrap_or("");
+    let notification_payload: Value = serde_json::from_str(notification_body).unwrap();
+    assert!(notification_payload.get("error").is_none(), "{notification_payload}");
+
+    let tools = http_post_json(
+        port,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"#,
+    );
+    let tools_body = tools.split("\r\n\r\n").nth(1).unwrap_or("");
+    let tools_payload: Value = serde_json::from_str(tools_body).unwrap();
+    assert_eq!(tools_payload["id"], 2);
+    assert!(tools_payload["result"]["tools"].as_array().unwrap().len() >= 13);
+
+    stop_child(&mut child);
+}
+
+#[test]
 fn http_hardening_auth_health_and_cors() {
     let db_path = temp_path("http-hardening", "db");
     let config_path = temp_path("http-hardening", "toml");
