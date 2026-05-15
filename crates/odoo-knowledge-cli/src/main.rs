@@ -418,7 +418,7 @@ async fn http_mcp(
             request_id,
             serde_json::json!({
                 "protocolVersion": "2024-11-05",
-                "capabilities": {"tools": {}},
+                "capabilities": {"tools": {}, "prompts": {"listChanged": false}},
                 "serverInfo": {"name": "odoo-knowledge-rs", "version": "0.1.0"}
             }),
         ),
@@ -426,6 +426,21 @@ async fn http_mcp(
             request_id,
             serde_json::json!({"tools": state.tool_schemas.as_ref().clone()}),
         ),
+        Some("prompts/list") => {
+            rpc_result(request_id, serde_json::json!({"prompts": prompt_schemas()}))
+        }
+        Some("prompts/get") => {
+            let params = request.get("params").unwrap_or(&serde_json::Value::Null);
+            let name = params
+                .get("name")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("");
+            let arguments = params.get("arguments").unwrap_or(&serde_json::Value::Null);
+            match get_prompt(name, arguments) {
+                Ok(prompt) => rpc_result(request_id, prompt),
+                Err(message) => rpc_error(request_id, -32602, &message),
+            }
+        }
         Some("tools/call") => {
             let started_at = std::time::Instant::now();
             let params = request.get("params").unwrap_or(&serde_json::Value::Null);
@@ -447,7 +462,9 @@ async fn http_mcp(
                         )
                     })?;
                 if started_at.elapsed() > state.request_timeout {
-                    return Ok(Json(rpc_error(request_id, -32000, "request timeout")).into_response());
+                    return Ok(
+                        Json(rpc_error(request_id, -32000, "request timeout")).into_response()
+                    );
                 }
                 match result {
                     Ok(payload) => {
@@ -711,13 +728,28 @@ fn run_mcp_stdio(con: &rusqlite::Connection) -> Result<()> {
             Some("initialize") => rpc_result(
                 request_id,
                 serde_json::json!({
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {"tools": {}},
+                "protocolVersion": "2024-11-05",
+                    "capabilities": {"tools": {}, "prompts": {"listChanged": false}},
                     "serverInfo": {"name": "odoo-knowledge-rs", "version": "0.1.0"}
                 }),
             ),
             Some("tools/list") => {
                 rpc_result(request_id, serde_json::json!({"tools": tool_schemas()}))
+            }
+            Some("prompts/list") => {
+                rpc_result(request_id, serde_json::json!({"prompts": prompt_schemas()}))
+            }
+            Some("prompts/get") => {
+                let params = request.get("params").unwrap_or(&serde_json::Value::Null);
+                let name = params
+                    .get("name")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("");
+                let arguments = params.get("arguments").unwrap_or(&serde_json::Value::Null);
+                match get_prompt(name, arguments) {
+                    Ok(prompt) => rpc_result(request_id, prompt),
+                    Err(message) => rpc_error(request_id, -32602, &message),
+                }
             }
             Some("tools/call") => {
                 let params = request.get("params").unwrap_or(&serde_json::Value::Null);
@@ -758,6 +790,95 @@ fn rpc_result(id: serde_json::Value, result: serde_json::Value) -> serde_json::V
 
 fn rpc_error(id: serde_json::Value, code: i64, message: &str) -> serde_json::Value {
     serde_json::json!({"jsonrpc": "2.0", "id": id, "error": {"code": code, "message": message}})
+}
+
+fn prompt_schemas() -> Vec<serde_json::Value> {
+    vec![
+        serde_json::json!({
+            "name": "odoo-codebase-selection",
+            "title": "Select Odoo MCP Codebase",
+            "description": "Guides an AI agent to choose the correct indexed Odoo CE/core codebase instead of a local project name.",
+            "arguments": [
+                {"name": "odoo_version", "description": "Odoo version used by the local project, for example 17.0, Odoo 17 CE, or 18.", "required": false},
+                {"name": "local_project", "description": "Local project/addons directory name, used only as context and not as the MCP codebase value.", "required": false}
+            ]
+        }),
+        serde_json::json!({
+            "name": "odoo-investigate-symbol",
+            "title": "Investigate Odoo Symbol",
+            "description": "Guides an AI agent through the recommended Odoo MCP tool sequence for investigating a model, method, field, XMLID, view, or module.",
+            "arguments": [
+                {"name": "symbol", "description": "Model, method, field, XMLID, module, file path, or symptom to investigate.", "required": true},
+                {"name": "codebase", "description": "Indexed Odoo source codebase, for example odoo-17, odoo-18, or odoo-19.", "required": false},
+                {"name": "module", "description": "Optional Odoo addon module filter, for example sale, stock, or account.", "required": false}
+            ]
+        }),
+    ]
+}
+
+fn get_prompt(
+    name: &str,
+    arguments: &serde_json::Value,
+) -> std::result::Result<serde_json::Value, String> {
+    match name {
+        "odoo-codebase-selection" => Ok(odoo_codebase_selection_prompt(arguments)),
+        "odoo-investigate-symbol" => odoo_investigate_symbol_prompt(arguments),
+        _ => Err(format!(
+            "unknown prompt `{name}`; use prompts/list to discover available prompts"
+        )),
+    }
+}
+
+fn odoo_codebase_selection_prompt(arguments: &serde_json::Value) -> serde_json::Value {
+    let odoo_version = arguments
+        .get("odoo_version")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("the Odoo CE/core version used by the project");
+    let local_project = arguments
+        .get("local_project")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("the local project/addons directory");
+    serde_json::json!({
+        "description": "Instructions for choosing the MCP codebase parameter.",
+        "messages": [{
+            "role": "user",
+            "content": {
+                "type": "text",
+                "text": format!(
+                    "When using this Odoo Knowledge MCP server, choose `codebase` from indexed Odoo core source names, not from the local project name. Local project context: `{local_project}`. Odoo version context: `{odoo_version}`. If the project uses Odoo CE 17, use `odoo-17`; if it uses Odoo CE 18, use `odoo-18`; if it uses Odoo CE 19, use `odoo-19`. Do not send `{local_project}` as `codebase` unless that exact name is listed by the MCP index. For odoo_search prefer arguments like {{\"query\": \"sale.order\", \"filters\": {{\"codebase\": \"odoo-17\"}}}}. If the version is ambiguous, ask the user or call a broad query without codebase only to inspect available indexed metadata."
+                )
+            }
+        }]
+    })
+}
+
+fn odoo_investigate_symbol_prompt(
+    arguments: &serde_json::Value,
+) -> std::result::Result<serde_json::Value, String> {
+    let symbol = arguments
+        .get("symbol")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| "missing required prompt argument: symbol".to_string())?;
+    let codebase = arguments
+        .get("codebase")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("<matching-odoo-codebase>");
+    let module = arguments.get("module").and_then(serde_json::Value::as_str);
+    let module_filter = module
+        .map(|module| format!(", with module filter `{module}` when useful"))
+        .unwrap_or_default();
+    Ok(serde_json::json!({
+        "description": "Recommended MCP workflow for investigating Odoo source knowledge.",
+        "messages": [{
+            "role": "user",
+            "content": {
+                "type": "text",
+                "text": format!(
+                    "Investigate `{symbol}` using indexed Odoo source facts from codebase `{codebase}`{module_filter}. Start with `odoo_search` using `filters.codebase`. Then choose the most specific follow-up tool: `odoo_model_context` for models, `odoo_method_chain` for model methods, `odoo_field_context` for fields, `odoo_view_chain` for views, `odoo_xmlid_lookup` for XMLIDs, `odoo_module_context` for addons, and `odoo_impact_analysis` or `odoo_context_bundle` for broader debugging. Treat results as static source analysis, not exact runtime Odoo registry behavior. Report the codebase, module/file paths, confidence, and any uncertainty."
+                )
+            }
+        }]
+    }))
 }
 
 fn tool_schemas() -> Vec<serde_json::Value> {
@@ -910,10 +1031,7 @@ fn tool_schema(
 
 fn common_props(mut properties: serde_json::Value) -> serde_json::Value {
     if let Some(object) = properties.as_object_mut() {
-        object.insert(
-            "codebase".to_string(),
-            codebase_schema(),
-        );
+        object.insert("codebase".to_string(), codebase_schema());
     }
     properties
 }

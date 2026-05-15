@@ -152,14 +152,20 @@ parallelism = 1
     );
     let initialize_body = initialize.split("\r\n\r\n").nth(1).unwrap_or("");
     let initialize_payload: Value = serde_json::from_str(initialize_body).unwrap();
-    assert_eq!(initialize_payload["result"]["serverInfo"]["name"], "odoo-knowledge-rs");
+    assert_eq!(
+        initialize_payload["result"]["serverInfo"]["name"],
+        "odoo-knowledge-rs"
+    );
 
     let notification = http_post_json_raw(
         port,
         r#"{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}"#,
         &[],
     );
-    assert!(notification.starts_with("HTTP/1.1 202 Accepted"), "{notification}");
+    assert!(
+        notification.starts_with("HTTP/1.1 202 Accepted"),
+        "{notification}"
+    );
     let notification_body = notification.split("\r\n\r\n").nth(1).unwrap_or("");
     assert!(notification_body.is_empty(), "{notification_body}");
 
@@ -171,6 +177,83 @@ parallelism = 1
     let tools_payload: Value = serde_json::from_str(tools_body).unwrap();
     assert_eq!(tools_payload["id"], 2);
     assert!(tools_payload["result"]["tools"].as_array().unwrap().len() >= 13);
+
+    stop_child(&mut child);
+}
+
+#[test]
+fn http_jsonrpc_lists_and_gets_prompts() {
+    let db_path = temp_path("http-prompts", "db");
+    let config_path = temp_path("http-prompts", "toml");
+    let port = free_port();
+    std::env::remove_var("ODOO_KNOWLEDGE_TEST_EMPTY_TOKEN");
+    std::fs::write(
+        &config_path,
+        format!(
+            r#"environment = "test"
+database_path = "{}"
+log_level = "debug"
+
+[server]
+host = "127.0.0.1"
+port = {port}
+bearer_token_env = "ODOO_KNOWLEDGE_TEST_EMPTY_TOKEN"
+
+[indexer]
+parallelism = 1
+"#,
+            db_path.display()
+        ),
+    )
+    .unwrap();
+
+    let mut child = Command::new(odoo_binary())
+        .arg("--config")
+        .arg(&config_path)
+        .arg("serve")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+
+    wait_for_server_banner(&mut child);
+    wait_for_tcp(port);
+
+    let initialize = http_post_json(
+        port,
+        r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}"#,
+    );
+    let initialize_body = initialize.split("\r\n\r\n").nth(1).unwrap_or("");
+    let initialize_payload: Value = serde_json::from_str(initialize_body).unwrap();
+    assert!(initialize_payload["result"]["capabilities"]
+        .as_object()
+        .unwrap()
+        .contains_key("prompts"));
+
+    let list = http_post_json(
+        port,
+        r#"{"jsonrpc":"2.0","id":2,"method":"prompts/list","params":{}}"#,
+    );
+    let list_body = list.split("\r\n\r\n").nth(1).unwrap_or("");
+    let list_payload: Value = serde_json::from_str(list_body).unwrap();
+    assert!(list_payload["result"]["prompts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|prompt| prompt["name"] == "odoo-codebase-selection"));
+
+    let get = http_post_json(
+        port,
+        r#"{"jsonrpc":"2.0","id":3,"method":"prompts/get","params":{"name":"odoo-codebase-selection","arguments":{"odoo_version":"Odoo 17 CE","local_project":"suqma-local"}}}"#,
+    );
+    let get_body = get.split("\r\n\r\n").nth(1).unwrap_or("");
+    let get_payload: Value = serde_json::from_str(get_body).unwrap();
+    let text = get_payload["result"]["messages"][0]["content"]["text"]
+        .as_str()
+        .unwrap();
+    assert!(text.contains("odoo-17"));
+    assert!(text.contains("suqma-local"));
+    assert!(text.contains("not from the local project name"));
 
     stop_child(&mut child);
 }

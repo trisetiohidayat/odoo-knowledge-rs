@@ -76,6 +76,10 @@ Preserve tool names, input schemas, top-level response fields, and MCP response
 wrapping unless a user explicitly requests a breaking change and compatibility
 is documented.
 
+The server also exposes MCP prompts via `prompts/list` and `prompts/get` for
+codebase-selection and investigation guidance. Keep prompt responses plain,
+stable, and aligned with the indexed Odoo codebase naming rules.
+
 ## Performance And Accuracy Work Already Completed
 
 The Rust MCP server has completed phases 1-8 in
